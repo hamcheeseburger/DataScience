@@ -30,6 +30,7 @@ class Emp {
 public class TopK {
 	public static class EmpComparator implements Comparator<Emp> {
 		public int compare(Emp x, Emp y) {
+//			오름차순으로 저장
 			if ( x.salary > y.salary ) return 1;
 			if ( x.salary < y.salary ) return -1;
 			return 0;

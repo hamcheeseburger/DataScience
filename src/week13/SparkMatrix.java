@@ -26,46 +26,45 @@ public class SparkMatrix {
 		int m = Integer.parseInt(args[2]);
 		int k = Integer.parseInt(args[3]);
 		int n = Integer.parseInt(args[4]);
+		
 		JavaPairRDD<String, Integer> m1elements = mat1.flatMapToPair(new PairFlatMapFunction<String, String, Integer>() {
 			public Iterator<Tuple2<String, Integer>> call(String s) {
 				String [] splited = s.split(" ");
-				String row = splited[0];
-				String col = splited[1];
+				String i = splited[0];
+				String x = splited[1];
 				Integer value = Integer.valueOf(splited[2]);
 			
 				String outputkey = "";	
 				ArrayList<Tuple2<String, Integer>> result = new ArrayList<Tuple2<String, Integer>>();
-				// return할 element들을담을ArrayList만들기
-				for (int i = 0; i < n; i++) {
-					outputkey = row + "," + i + "," + col;
+
+				for (int j = 0; j < n; j++) {
+					outputkey = i + "," + j + "," + x;
 					Tuple2<String, Integer> tuple = new Tuple2<String, Integer>(outputkey, value);
 					
 					result.add(tuple);
 				}
-				// matrix_a에 맞는 적절한 index 만들어서 ArrayList에 add 하기
-				//ArrayList의iterator를return
+
 				return result.iterator();
 			}
 		});
+		
 		JavaPairRDD<String, Integer> m2elements = mat2.flatMapToPair(new PairFlatMapFunction<String, String, Integer>() {
 			public Iterator<Tuple2<String, Integer>> call(String s) {
 				String [] splited = s.split(" ");
-				String row = splited[0];
-				String col = splited[1];
+				String x = splited[0];
+				String j = splited[1];
 				Integer value = Integer.valueOf(splited[2]);
 				
 				String outputkey = "";
 				ArrayList<Tuple2<String, Integer>> result = new ArrayList<Tuple2<String, Integer>>();
-				// return할element들을담을ArrayList만들기
+
 				for (int i = 0; i < m; i++) {
-					outputkey = i + "," + col + "," + row;
+					outputkey = i + "," + j + "," + x;
 					Tuple2<String, Integer> tuple = new Tuple2<String, Integer>(outputkey, value);
 					
 					result.add(tuple);
 				}
-				// matrix_b에 맞는 적절한index 만들어서ArrayList에add 하기
-				//ArrayList의iterator를return
-				
+
 				return result.iterator();
 			}
 		});
@@ -86,6 +85,7 @@ public class SparkMatrix {
 				String key = tp._1();
 				Integer val = tp._2();
 				String [] splited = key.split(",");
+				// i, j만 추출
 				String new_key = splited[0] + "," + splited[1];
 				
 				new Tuple2<String, Integer>(new_key, val);	

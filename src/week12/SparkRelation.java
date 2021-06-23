@@ -64,15 +64,13 @@ public class SparkRelation {
     	});
 	
     	JavaRDD<String> codes = spark.read().textFile(args[1]).javaRDD();
-    	
-    	PairFunction<String, String, Code> pfB = new PairFunction<String, String, Code>() {
+
+    	JavaPairRDD<String, Code> cTuples = codes.mapToPair(new PairFunction<String, String, Code>() {
     		public Tuple2<String, Code> call(String s) {
     			String[] splited = s.split("|");
     			return new Tuple2(splited[0], new Code(splited[0], splited[1]));
     		}
-    	};
-    	
-    	JavaPairRDD<String, Code> cTuples = codes.mapToPair(pfB);
+    	});
     	
     	JavaPairRDD<String, Tuple2<Product, Code>> joined = pTuples.join(cTuples);
     	JavaPairRDD<String, Tuple2<Product, Optional<Code>>> leftOuterJoined = pTuples.leftOuterJoin(cTuples);
@@ -83,5 +81,7 @@ public class SparkRelation {
     	leftOuterJoined.saveAsTextFile(args[args.length - 1] + "_leftOuterJoin");
     	rightOuterJoined.saveAsTextFile(args[args.length - 1] + "_rightOuterJoin");
     	fullOuterJoined.saveAsTextFile(args[args.length - 1] + "_fullOuterJoin");
+    	
+    	spark.stop();
 	}
 }

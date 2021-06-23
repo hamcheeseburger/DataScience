@@ -1,5 +1,3 @@
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.util.StringTokenizer;
 import java.io.*;
 import java.util.*;
@@ -14,8 +12,12 @@ import org.apache.hadoop.mapreduce.lib.input.*;
 import org.apache.hadoop.mapreduce.lib.output.*;
 import org.apache.hadoop.util.GenericOptionsParser;
 
+import week10.Context;
+import week10.Emp;
+import week10.Text;
 
-public class Kmeans {
+
+public class KmeansCombiner {
 	public static class KMeansMapper extends Mapper<LongWritable, Text, IntWritable, Text>{
 		private IntWritable one_key = new IntWritable();
 		private int n_centers;
@@ -57,18 +59,17 @@ public class Kmeans {
 				}
 			}
 			one_key.set( cluster_idx );
+			
 			context.write( one_key, value );
 		}
 	}
 	
-	
-	
-	public static class KMeansReducer extends Reducer<IntWritable,Text,IntWritable,Text> {
-		public void reduce(IntWritable key, Iterable<Text> values, Context context )
+	public static class KMeansCombiner extends Reducer<IntWritable,Text,IntWritable,Text> {
+		public void reduce(IntWritable key, Iterable<Text> values, Context context)
 				throws IOException, InterruptedException {
 			double x_total = 0;
 			double y_total = 0;
-			int cnt = 0 ;
+			int cnt = 0;
 			Text result = new Text();
 			for (Text val : values) {
 				// calculate center
@@ -81,15 +82,42 @@ public class Kmeans {
 				y_total += y;
 				cnt++;
 			}
+
+			result.set(x_total + "," + y_total + "," + cnt);
+			
+			context.write(key, result);
+		}
+		
+	}
+	
+	public static class KMeansReducer extends Reducer<IntWritable,Text,IntWritable,Text> {
+		public void reduce(IntWritable key, Iterable<Text> values, Context context)
+				throws IOException, InterruptedException {
+			double x_total = 0;
+			double y_total = 0;
+			int cnt = 0;
+			Text result = new Text();
+			for (Text val : values) {
+				// calculate center
+				String xy = val.toString();
+				String [] splited = xy.split(",");
+				double x = Double.parseDouble(splited[0]);
+				double y = Double.parseDouble(splited[1]);
+				cnt += Integer.valueOf(splited[2]);
+				x_total += x;
+				y_total += y;
+			}
+
 			result.set((x_total / cnt) + "," + (y_total / cnt));
 			
 			context.write(key, result);
 		}
+	
 	}
 	
 	public static void initCenter(Configuration conf, int n_centers) {
 		conf.setInt("n_centers", n_centers);
-		for(int i=0; i < n_centers; i++) {
+		for(int i = 0; i < n_centers; i++) {
 			conf.setFloat("center_x_"+i, (float)(1.0/(double)n_centers));
 			conf.setFloat("center_y_"+i, (float)(1.0/(double)n_centers));
 		}
@@ -97,7 +125,7 @@ public class Kmeans {
 	
 	public static void updateCenter (Configuration conf) throws Exception {
 		FileSystem dfs = FileSystem.get(conf);
-		Path filenamePath = new Path( "/user/hyeonji/kmeansoutput/part-r-00000" );
+		Path filenamePath = new Path("/user/hyeonji/kmeansoutput/part-r-00000" );
 		FSDataInputStream in = dfs.open(filenamePath);
 		BufferedReader reader = new BufferedReader( new InputStreamReader(in) );
 		String line = reader.readLine();
@@ -119,6 +147,7 @@ public class Kmeans {
 	public static void main(String[] args) throws Exception {
 		int n_iter = 3;
 		int n_centers = 2;
+
 		Configuration conf = new Configuration();
 		String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
 		if (otherArgs.length != 2) {
@@ -128,11 +157,12 @@ public class Kmeans {
 		
 		initCenter(conf, n_centers);
 		
-		for( int i = 0; i < n_iter; i++ ) {
+		for( int i = 0; i < 1; i++ ) {
 			Job job = new Job(conf, "Kmeans");
-			job.setJarByClass(Kmeans.class);
+			job.setJarByClass(KmeansCombiner.class);
 			job.setMapperClass(KMeansMapper.class);
 			job.setReducerClass(KMeansReducer.class);
+			job.setCombinerClass(KMeansCombiner.class);
 			
 			job.setOutputKeyClass(IntWritable.class);
 			job.setOutputValueClass(Text.class);

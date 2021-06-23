@@ -15,6 +15,7 @@ import org.apache.hadoop.filecache.*;
 public class MapSideJoin {
 	public static class MapSideJoinMapper extends Mapper<Object, Text, Text, Text>{
 		Hashtable<String,String> joinMap = new Hashtable<String,String>();
+		
 		public void map(Object key, Text value, Context context) throws IOException, InterruptedException{
 			Text outputKey = new Text();
 			Text outputValue = new Text();
@@ -34,8 +35,7 @@ public class MapSideJoin {
 		
 		protected void setup(Context context) throws IOException, InterruptedException{
 			Path[] cacheFiles = DistributedCache.getLocalCacheFiles( context.getConfiguration() );
-			BufferedReader br = new BufferedReader( new
-			FileReader( cacheFiles[0].toString() ) );
+			BufferedReader br = new BufferedReader( new FileReader( cacheFiles[0].toString() ) );
 			String line = br.readLine();
 			while( line != null ) {
 				StringTokenizer itr = new StringTokenizer(line, "|");

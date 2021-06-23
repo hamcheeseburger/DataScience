@@ -13,9 +13,10 @@ import org.apache.hadoop.mapreduce.lib.input.*;
 import org.apache.hadoop.mapreduce.lib.output.*;
 import org.apache.hadoop.util.GenericOptionsParser;
 
+// joinKey = 상품코드
+// tableName = A or B
 
-	
-	// Composite Key
+// Composite Key
 class DoubleString implements WritableComparable {
 	String joinKey = new String();
 	String tableName = new String();
@@ -39,7 +40,7 @@ class DoubleString implements WritableComparable {
 		int ret = joinKey.compareTo( o.joinKey );
 		if (ret!=0) return ret;
 		// reverse sorting
-		return -1*tableName.compareTo( o.tableName );
+		return -1 * tableName.compareTo( o.tableName );
 	}
 	public String toString() { 
 		return joinKey + " " + tableName; 
@@ -57,23 +58,26 @@ public class ReduceSideJoin2 {
 		public int compare(WritableComparable w1, WritableComparable w2) {
 			DoubleString k1 = (DoubleString)w1;
 			DoubleString k2 = (DoubleString)w2;
-			int result = k1.joinKey.compareTo(k2.joinKey);
-			if(0 == result) {
-				result = -1* k1.tableName.compareTo(k2.tableName);
-			}
+//			int result = k1.joinKey.compareTo(k2.joinKey);
+
+//			if(0 == result) { // join key가 같으면
+//				result = -1* k1.tableName.compareTo(k2.tableName);
+//			}
+			
+			int result = k1.compareTo(k2);
 			return result;
-			}
+		}
 	}
 	
 	
 	// Partitioner
 	public static class FirstPartitioner extends Partitioner<DoubleString, Text> {
 		public int getPartition(DoubleString key, Text value, int numPartition) {
-			return key.joinKey.hashCode()%numPartition;
+			return key.joinKey.hashCode() % numPartition;
 		}
 	}
 	
-	// GroupComparator
+	// GroupComparator => Join Key가 같으면 같은 value list로 들어가도록
 	public static class FirstGroupingComparator extends WritableComparator {
 		protected FirstGroupingComparator() {
 			super(DoubleString.class, true);
@@ -166,8 +170,11 @@ public class ReduceSideJoin2 {
 		job.setOutputValueClass(Text.class);
 		job.setMapOutputKeyClass(DoubleString.class);
 		job.setMapOutputValueClass(Text.class);
+//		같은 join key를 갖는 것들은 같은 reducer로 들어가도록 함
 		job.setPartitionerClass(FirstPartitioner.class);
+//		Join key가 같은 것끼리 suffling되도록 정의
 		job.setGroupingComparatorClass(FirstGroupingComparator.class);
+//		Suffling이 된 value_list에서 역순으로 정렬
 		job.setSortComparatorClass(CompositeKeyComparator.class);
 		FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
 		FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));

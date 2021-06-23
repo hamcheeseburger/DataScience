@@ -28,7 +28,7 @@ public class PageRank {
 //			해당 페이지 id
 			int src_id = Integer.parseInt(itr.nextToken().trim());
 //			pr = 기여분
-			double pr = pagerank[src_id]/ (double) n_links;
+			double pr = pagerank[src_id] / (double) n_links;
 			one_value.set( pr );
 			
 			// 연결된 page에 page rank값(기여도) 을 분배
